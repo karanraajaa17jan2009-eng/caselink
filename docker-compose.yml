@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for production durability
+  db:
+    image: postgres:16-alpine
+    container_name: caselink-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: caselink_user
+      POSTGRES_PASSWORD: caselink_secure_password_2026
+      POSTGRES_DB: caselink_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caselink_user -d caselink_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Fullstack Application Container (FastAPI + React SPA)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: caselink-app
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://caselink_user:caselink_secure_password_2026@db:5432/caselink_db
+      - SECRET_KEY=caselink-prod-secret-key-aicte-sih-2026-production
+      - ACCESS_TOKEN_EXPIRE_MINUTES=480
+      - UPLOAD_DIR=/app/backend/uploads
+      - PORT=8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - caselink_uploads:/app/backend/uploads
+
+volumes:
+  postgres_data:
+  caselink_uploads:
